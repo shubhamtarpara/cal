@@ -1,0 +1,158 @@
+import React, { useState } from "react";
+import "chart.js/auto";
+
+import LoadTable from "./LoanTable";
+import "../loanCalculator.css";
+
+const LoanCalculator = () => {
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [loanTenure, setLoanTenure] = useState("");
+  const [emi, setEmi] = useState("");
+  const [totalInterest, setTotalInterest] = useState("");
+  const [tableData, setTableData] = useState([]);
+  // const [prePayment, setPrePayment] = useState("");
+  // const [prepaymentMonth, setPrepaymentMonth] = useState(null);
+  const [tenureType, setTenureType] = useState("Years");
+
+  const calculateEmi = () => {
+    const principal = parseFloat(loanAmount);
+    const rateOfInterest = parseFloat(interestRate) / 100 / 12;
+    const tenure = parseFloat(loanTenure);
+    const monthsPerYear = 12;
+  
+    const tableDataArray = [];
+    let outstanding = principal;
+    let yearlyInterestValue = 0;
+    
+    const emiValue =
+      (principal * rateOfInterest * Math.pow(1 + rateOfInterest, tenure * 12)) /
+      (Math.pow(1 + rateOfInterest, tenure * 12) - 1);
+    
+    const totalMonths = tenure * monthsPerYear;
+    
+    for (let i = 1; i <= totalMonths; i++) {
+      const interestPayment = outstanding * rateOfInterest;
+      const principalPayment = emiValue - interestPayment;
+    
+      yearlyInterestValue += interestPayment;
+
+      const openingBalance = outstanding;
+    
+      if (tenureType === "Years" && i % 12 === 0) {
+        const year = i / 12;
+        tableDataArray.push({
+          term: Math.ceil(year),
+          openingBalance: Math.ceil(openingBalance),
+          emi: Math.ceil(emiValue * monthsPerYear),
+          interest: Math.ceil(yearlyInterestValue),
+          principal: Math.ceil(principalPayment * monthsPerYear),
+          outstandingBalance: Math.ceil(outstanding - principalPayment),
+        });
+    
+        yearlyInterestValue = 0;
+      } else if (tenureType === "Months") {
+        tableDataArray.push({
+          term: i,
+          openingBalance: Math.ceil(openingBalance),
+          emi: Math.ceil(emiValue),
+          interest: Math.ceil(interestPayment),
+          principal: Math.ceil(principalPayment),
+          outstandingBalance: Math.ceil(outstanding - principalPayment),
+        });
+      }
+    
+      outstanding = outstanding - principalPayment;
+    }
+    
+    setEmi(Math.ceil(emiValue * monthsPerYear));
+    setTableData(tableDataArray);
+  };
+  
+
+  return (
+    <>
+      <h2 className="calculator-container-title">Home Loan EMI Calculator</h2>
+      <div className="calculator-main-container">
+        <div className="calculator-container">
+          <form>
+            <div className="input-group">
+              <label>Loan Amount:</label>
+              <input
+                type="number"
+                value={loanAmount}
+                onChange={(e) => setLoanAmount(e.target.value)}
+              />
+            </div>
+            <div className="input-group">
+              <label>Interest Rate (% per annum):</label>
+              <input
+                type="number"
+                value={interestRate}
+                onChange={(e) => setInterestRate(e.target.value)}
+              />
+            </div>
+            <div className="input-group">
+              <label>Tenure Type:</label>
+              <select
+                value={tenureType}
+                onChange={(e) => setTenureType(e.target.value)}
+              >
+                <option value="Years">Years</option>
+                <option value="Months">Months</option>
+              </select>
+            </div>
+            <div className="input-group">
+              <label>Tenure:</label>
+              <input
+                type="number"
+                value={loanTenure}
+                onChange={(e) => setLoanTenure(e.target.value)}
+              />
+            </div>
+
+            <button type="button" onClick={calculateEmi}>
+              Calculate EMI
+            </button>
+          </form>
+
+          <div className="result">
+            <h3>Loan Details</h3>
+            <p>EMI: ₹ {emi}</p>
+            <p>Total Interest: ₹ {totalInterest}</p>
+          </div>
+        </div>
+      </div>
+      <div className="emi-table-container">
+        <table className="emi-table">
+          <thead>
+            <tr>
+              <th>{tenureType === "Years" ? "Years" : "Months"}</th>
+              <th>Opening Balance</th>
+              <th>EMI</th>
+              <th>Interest</th>
+              <th>Principal</th>
+              <th>Outstanding Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.map((row) => {
+              return (
+                <tr key={row.term}>
+                  <td>{row.term}</td>
+                  <td>{row.openingBalance}</td>
+                  <td>{row.emi}</td>
+                  <td>{row.interest}</td>
+                  <td>{row.principal}</td>
+                  <td>{row.outstandingBalance}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+};
+
+export default LoanCalculator;
