@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import "chart.js/auto";
 
-import LoadTable from "./LoanTable";
 import "../loanCalculator.css";
 
 const LoanCalculator = () => {
@@ -30,27 +29,31 @@ const LoanCalculator = () => {
       (Math.pow(1 + rateOfInterest, tenure * 12) - 1);
     
     const totalMonths = tenure * monthsPerYear;
-    
+  
+    let yearOpeningBalance = principal;
+
     for (let i = 1; i <= totalMonths; i++) {
       const interestPayment = outstanding * rateOfInterest;
       const principalPayment = emiValue - interestPayment;
     
-      yearlyInterestValue += interestPayment;
-
+      yearlyInterestValue = yearlyInterestValue + interestPayment;
+    
       const openingBalance = outstanding;
     
       if (tenureType === "Years" && i % 12 === 0) {
         const year = i / 12;
         tableDataArray.push({
           term: Math.ceil(year),
-          openingBalance: Math.ceil(openingBalance),
+          openingBalance: Math.ceil(yearOpeningBalance),
           emi: Math.ceil(emiValue * monthsPerYear),
           interest: Math.ceil(yearlyInterestValue),
-          principal: Math.ceil(principalPayment * monthsPerYear),
+          principal: Math.ceil(emiValue * monthsPerYear - yearlyInterestValue),
           outstandingBalance: Math.ceil(outstanding - principalPayment),
         });
     
         yearlyInterestValue = 0;
+        yearOpeningBalance = Math.ceil(outstanding - principalPayment);
+
       } else if (tenureType === "Months") {
         tableDataArray.push({
           term: i,
@@ -61,7 +64,6 @@ const LoanCalculator = () => {
           outstandingBalance: Math.ceil(outstanding - principalPayment),
         });
       }
-    
       outstanding = outstanding - principalPayment;
     }
     
