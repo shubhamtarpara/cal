@@ -1,7 +1,4 @@
 import React, { useState } from "react";
-import "chart.js/auto";
-
-import "../loanCalculator.css";
 
 const LoanCalculator = () => {
   const [loanAmount, setLoanAmount] = useState("");
@@ -10,9 +7,13 @@ const LoanCalculator = () => {
   const [emi, setEmi] = useState("");
   const [totalInterest, setTotalInterest] = useState("");
   const [tableData, setTableData] = useState([]);
-  // const [prePayment, setPrePayment] = useState("");
+  const [prepayments, setPrepayments] = useState([{
+    index: '',
+    amount: '',
+  }]);
   // const [prepaymentMonth, setPrepaymentMonth] = useState(null);
   const [tenureType, setTenureType] = useState("Years");
+  console.log(prepayments)
 
   const calculateEmi = () => {
     const principal = parseFloat(loanAmount);
@@ -69,9 +70,19 @@ const LoanCalculator = () => {
     
     setEmi(Math.ceil(emiValue * monthsPerYear));
     setTableData(tableDataArray);
+    setTotalInterest(Math.ceil(yearlyInterestValue));
   };
   
-
+  const handlePrepaymentChange = (index, value) => {
+    let updatedPrepayments = [...prepayments];
+    updatedPrepayments.push({
+      index:index,
+      amount:value
+    })
+    console.log(updatedPrepayments)
+    setPrepayments(updatedPrepayments);
+  };
+console.log(prepayments)
   return (
     <>
       <h2 className="calculator-container-title">Home Loan EMI Calculator</h2>
@@ -135,10 +146,11 @@ const LoanCalculator = () => {
               <th>Interest</th>
               <th>Principal</th>
               <th>Outstanding Balance</th>
+              <th>{tenureType === "Years" ? "Yearly Prepayment" : "Monthly prepayment"}</th>
             </tr>
           </thead>
           <tbody>
-            {tableData.map((row) => {
+            {tableData.map((row, index) => {
               return (
                 <tr key={row.term}>
                   <td>{row.term}</td>
@@ -147,6 +159,8 @@ const LoanCalculator = () => {
                   <td>{row.interest}</td>
                   <td>{row.principal}</td>
                   <td>{row.outstandingBalance}</td>
+                  <td>{
+                   <input type="text" onBlur={(e) => handlePrepaymentChange(index , e.target.value)} /> }</td>
                 </tr>
               );
             })}
