@@ -7,40 +7,45 @@ const LoanCalculator = () => {
   const [emi, setEmi] = useState("");
   const [totalInterest, setTotalInterest] = useState("");
   const [tableData, setTableData] = useState([]);
-  const [prepayments, setPrepayments] = useState([{
-    index: '',
-    amount: '',
-  }]);
+  const [prepayments, setPrepayments] = useState([
+    {
+      index: "",
+      amount: "",
+    },
+  ]);
   // const [prepaymentMonth, setPrepaymentMonth] = useState(null);
   const [tenureType, setTenureType] = useState("Years");
-  console.log(prepayments)
+  console.log(prepayments);
 
   const calculateEmi = () => {
     const principal = parseFloat(loanAmount);
     const rateOfInterest = parseFloat(interestRate) / 100 / 12;
     const tenure = parseFloat(loanTenure);
     const monthsPerYear = 12;
-  
+
     const tableDataArray = [];
     let outstanding = principal;
     let yearlyInterestValue = 0;
-    
+
     const emiValue =
       (principal * rateOfInterest * Math.pow(1 + rateOfInterest, tenure * 12)) /
       (Math.pow(1 + rateOfInterest, tenure * 12) - 1);
-    
+
     const totalMonths = tenure * monthsPerYear;
-  
+
     let yearOpeningBalance = principal;
 
     for (let i = 1; i <= totalMonths; i++) {
       const interestPayment = outstanding * rateOfInterest;
       const principalPayment = emiValue - interestPayment;
-    
+
       yearlyInterestValue = yearlyInterestValue + interestPayment;
-    
+
       const openingBalance = outstanding;
-    
+      const prepayment = prepayments.find((prepayment) => prepayment.index === i);
+      if (prepayment) {
+        outstanding -= prepayment.amount; 
+      }
       if (tenureType === "Years" && i % 12 === 0) {
         const year = i / 12;
         tableDataArray.push({
@@ -51,10 +56,9 @@ const LoanCalculator = () => {
           principal: Math.ceil(emiValue * monthsPerYear - yearlyInterestValue),
           outstandingBalance: Math.ceil(outstanding - principalPayment),
         });
-    
+
         yearlyInterestValue = 0;
         yearOpeningBalance = Math.ceil(outstanding - principalPayment);
-
       } else if (tenureType === "Months") {
         tableDataArray.push({
           term: i,
@@ -67,22 +71,32 @@ const LoanCalculator = () => {
       }
       outstanding = outstanding - principalPayment;
     }
-    
+
     setEmi(Math.ceil(emiValue * monthsPerYear));
     setTableData(tableDataArray);
     setTotalInterest(Math.ceil(yearlyInterestValue));
   };
-  
+
   const handlePrepaymentChange = (index, value) => {
-    let updatedPrepayments = [...prepayments];
-    updatedPrepayments.push({
-      index:index,
-      amount:value
-    })
-    console.log(updatedPrepayments)
+    const updatedPrepayments = [...prepayments];
+
+    const existingPrepaymentIndex = updatedPrepayments.findIndex(
+      (prepayment) => prepayment.index === index
+    );
+
+    if (existingPrepaymentIndex !== -1) {
+      updatedPrepayments[existingPrepaymentIndex].amount = value;
+    } else {
+      updatedPrepayments.push({
+        index: index,
+        amount: value,
+      });
+    }
+
     setPrepayments(updatedPrepayments);
+    calculateEmi();
   };
-console.log(prepayments)
+
   return (
     <>
       <h2 className="calculator-container-title">Home Loan EMI Calculator</h2>
@@ -146,7 +160,11 @@ console.log(prepayments)
               <th>Interest</th>
               <th>Principal</th>
               <th>Outstanding Balance</th>
-              <th>{tenureType === "Years" ? "Yearly Prepayment" : "Monthly prepayment"}</th>
+              <th>
+                {tenureType === "Years"
+                  ? "Yearly Prepayment"
+                  : "Monthly prepayment"}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -159,8 +177,16 @@ console.log(prepayments)
                   <td>{row.interest}</td>
                   <td>{row.principal}</td>
                   <td>{row.outstandingBalance}</td>
-                  <td>{
-                   <input type="text" onBlur={(e) => handlePrepaymentChange(index , e.target.value)} /> }</td>
+                  <td>
+                    {
+                      <input
+                        type="text"
+                        onBlur={(e) =>
+                          handlePrepaymentChange(index, e.target.value)
+                        }
+                      />
+                    }
+                  </td>
                 </tr>
               );
             })}
