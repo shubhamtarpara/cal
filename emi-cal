@@ -7,17 +7,11 @@ const LoanCalculator = () => {
   const [emi, setEmi] = useState("");
   const [totalInterest, setTotalInterest] = useState("");
   const [tableData, setTableData] = useState([]);
-  const [prepayments, setPrepayments] = useState([
-    {
-      index: "",
-      amount: "",
-    },
-  ]);
+  const [prepayments, setPrepayments] = useState([]);
   // const [prepaymentMonth, setPrepaymentMonth] = useState(null);
   const [tenureType, setTenureType] = useState("Years");
-  console.log(prepayments);
 
-  const calculateEmi = () => {
+  const calculateEmi = (updatedPrepayment = null) => {
     const principal = parseFloat(loanAmount);
     const rateOfInterest = parseFloat(interestRate) / 100 / 12;
     const tenure = parseFloat(loanTenure);
@@ -35,17 +29,24 @@ const LoanCalculator = () => {
 
     let yearOpeningBalance = principal;
 
-    for (let i = 1; i <= totalMonths; i++) {
+    const payments = updatedPrepayment || prepayments;
+
+
+    for (let i = 0; i < totalMonths; i++) {
+      console.log(i % 12 , 'good')
       const interestPayment = outstanding * rateOfInterest;
       const principalPayment = emiValue - interestPayment;
 
       yearlyInterestValue = yearlyInterestValue + interestPayment;
 
       const openingBalance = outstanding;
-      const prepayment = prepayments.find((prepayment) => prepayment.index === i);
+      const prepayment = payments.find((item) => item.index + 2 === i % 12 );
+      console.log(prepayment, '++')
+
       if (prepayment) {
-        outstanding -= prepayment.amount; 
+        outstanding -= prepayment.amount;
       }
+
       if (tenureType === "Years" && i % 12 === 0) {
         const year = i / 12;
         tableDataArray.push({
@@ -86,15 +87,16 @@ const LoanCalculator = () => {
 
     if (existingPrepaymentIndex !== -1) {
       updatedPrepayments[existingPrepaymentIndex].amount = value;
-    } else {
+    } else if (value !== "") {
       updatedPrepayments.push({
         index: index,
         amount: value,
       });
+    } else {
+      updatedPrepayments.splice(index, 1);
     }
-
     setPrepayments(updatedPrepayments);
-    calculateEmi();
+    calculateEmi(updatedPrepayments);
   };
 
   return (
@@ -138,7 +140,7 @@ const LoanCalculator = () => {
               />
             </div>
 
-            <button type="button" onClick={calculateEmi}>
+            <button type="button" onClick={() => calculateEmi()}>
               Calculate EMI
             </button>
           </form>
