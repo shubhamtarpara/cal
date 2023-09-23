@@ -1,202 +1,140 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from 'react';
+import './App.css'
+function App() {
+  const [loanAmount, setLoanAmount] = useState(100000);
+  const [interestRate, setInterestRate] = useState(10);
+  const [loanTenure, setLoanTenure] = useState(10);
+  const [tenureType, setTenureType] = useState('yearly'); 
+  const [prePayments, setPrePayments] = useState([]);
+  const [loanDetails, setLoanDetails] = useState([]);
 
-const LoanCalculator = () => {
-  const [loanAmount, setLoanAmount] = useState("");
-  const [interestRate, setInterestRate] = useState("");
-  const [loanTenure, setLoanTenure] = useState("");
-  const [emi, setEmi] = useState("");
-  const [totalInterest, setTotalInterest] = useState("");
-  const [tableData, setTableData] = useState([]);
-  const [prepayments, setPrepayments] = useState([]);
-  // const [prepaymentMonth, setPrepaymentMonth] = useState(null);
-  const [tenureType, setTenureType] = useState("Years");
+  const calculateEMI = () => {
+    const principalAmount = parseFloat(loanAmount);
+    const annualInterestRate = parseFloat(interestRate);
+    const tenureInYears = parseFloat(loanTenure);
 
-  const calculateEmi = (updatedPrepayment = null) => {
-    const principal = parseFloat(loanAmount);
-    const rateOfInterest = parseFloat(interestRate) / 100 / 12;
-    const tenure = parseFloat(loanTenure);
-    const monthsPerYear = 12;
+    const monthlyInterestRate = (annualInterestRate / 12) / 100;
+    const numberOfEMIs = tenureType === 'yearly' ? tenureInYears : tenureInYears * 12; 
 
-    const tableDataArray = [];
-    let outstanding = principal;
-    let yearlyInterestValue = 0;
+    const EMI =
+      (principalAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfEMIs)) /
+      (Math.pow(1 + monthlyInterestRate, numberOfEMIs) - 1);
 
-    const emiValue =
-      (principal * rateOfInterest * Math.pow(1 + rateOfInterest, tenure * 12)) /
-      (Math.pow(1 + rateOfInterest, tenure * 12) - 1);
+    const newLoanDetails = [];
+    let openingBalance = principalAmount;
 
-    const totalMonths = tenure * monthsPerYear;
+    for (let year = 0; year < numberOfEMIs; year++) {
 
-    let yearOpeningBalance = principal;
+      const interest = openingBalance * monthlyInterestRate;
+      const principal = EMI - interest;
+      const prepayment = prePayments[year] || 0;
+      const outstandingBalance = openingBalance - principal - prepayment;
 
-    const payments = updatedPrepayment || prepayments;
-
-
-    for (let i = 0; i < totalMonths; i++) {
-      console.log(i % 12 , 'good')
-      const interestPayment = outstanding * rateOfInterest;
-      const principalPayment = emiValue - interestPayment;
-
-      yearlyInterestValue = yearlyInterestValue + interestPayment;
-
-      const openingBalance = outstanding;
-      const prepayment = payments.find((item) => item.index + 2 === i % 12 );
-      console.log(prepayment, '++')
-
-      if (prepayment) {
-        outstanding -= prepayment.amount;
-      }
-
-      if (tenureType === "Years" && i % 12 === 0) {
-        const year = i / 12;
-        tableDataArray.push({
-          term: Math.ceil(year),
-          openingBalance: Math.ceil(yearOpeningBalance),
-          emi: Math.ceil(emiValue * monthsPerYear),
-          interest: Math.ceil(yearlyInterestValue),
-          principal: Math.ceil(emiValue * monthsPerYear - yearlyInterestValue),
-          outstandingBalance: Math.ceil(outstanding - principalPayment),
-        });
-
-        yearlyInterestValue = 0;
-        yearOpeningBalance = Math.ceil(outstanding - principalPayment);
-      } else if (tenureType === "Months") {
-        tableDataArray.push({
-          term: i,
-          openingBalance: Math.ceil(openingBalance),
-          emi: Math.ceil(emiValue),
-          interest: Math.ceil(interestPayment),
-          principal: Math.ceil(principalPayment),
-          outstandingBalance: Math.ceil(outstanding - principalPayment),
-        });
-      }
-      outstanding = outstanding - principalPayment;
-    }
-
-    setEmi(Math.ceil(emiValue * monthsPerYear));
-    setTableData(tableDataArray);
-    setTotalInterest(Math.ceil(yearlyInterestValue));
-  };
-
-  const handlePrepaymentChange = (index, value) => {
-    const updatedPrepayments = [...prepayments];
-
-    const existingPrepaymentIndex = updatedPrepayments.findIndex(
-      (prepayment) => prepayment.index === index
-    );
-
-    if (existingPrepaymentIndex !== -1) {
-      updatedPrepayments[existingPrepaymentIndex].amount = value;
-    } else if (value !== "") {
-      updatedPrepayments.push({
-        index: index,
-        amount: value,
+      newLoanDetails.push({
+        year,
+        openingBalance,
+        EMI,
+        interest,
+        principal,
+        outstandingBalance,
+        prepayment,
       });
-    } else {
-      updatedPrepayments.splice(index, 1);
+
+      openingBalance = outstandingBalance;
     }
-    setPrepayments(updatedPrepayments);
-    calculateEmi(updatedPrepayments);
+
+    setLoanDetails(newLoanDetails);
   };
+
+  const handlePrepaymentChange = (event, index) => {
+    const newPrePayments = [...prePayments];
+    newPrePayments[index] = parseFloat(event.target.value);
+    setPrePayments(newPrePayments);
+  };
+
+  useEffect(() => {
+    calculateEMI();
+  }, [prePayments]);
 
   return (
-    <>
-      <h2 className="calculator-container-title">Home Loan EMI Calculator</h2>
-      <div className="calculator-main-container">
-        <div className="calculator-container">
-          <form>
-            <div className="input-group">
-              <label>Loan Amount:</label>
-              <input
-                type="number"
-                value={loanAmount}
-                onChange={(e) => setLoanAmount(e.target.value)}
-              />
-            </div>
-            <div className="input-group">
-              <label>Interest Rate (% per annum):</label>
-              <input
-                type="number"
-                value={interestRate}
-                onChange={(e) => setInterestRate(e.target.value)}
-              />
-            </div>
-            <div className="input-group">
-              <label>Tenure Type:</label>
-              <select
-                value={tenureType}
-                onChange={(e) => setTenureType(e.target.value)}
-              >
-                <option value="Years">Years</option>
-                <option value="Months">Months</option>
-              </select>
-            </div>
-            <div className="input-group">
-              <label>Tenure:</label>
-              <input
-                type="number"
-                value={loanTenure}
-                onChange={(e) => setLoanTenure(e.target.value)}
-              />
-            </div>
+    <div className="calculator-container">
+    <h1>Home Loan EMI Calculator</h1>
+    <div>
+      <label className="input-label">Loan Amount:</label>
+      <input
+        type="number"
+        className="input-field"
+        value={loanAmount}
+        onChange={(e) => setLoanAmount(e.target.value)}
+      />
+    </div>
+    <div>
+      <label className="input-label">Interest Rate:</label>
+      <input
+        type="number"
+        className="input-field"
+        value={interestRate}
+        onChange={(e) => setInterestRate(e.target.value)}
+      />
+    </div>
+    <div>
+      <label className="input-label">Loan Tenure (years):</label>
+      <input
+        type="number"
+        className="input-field"
+        value={loanTenure}
+        onChange={(e) => setLoanTenure(e.target.value)}
+      />
+    </div>
+    <div>
+        <label className="input-label">Loan Tenure:</label>
 
-            <button type="button" onClick={() => calculateEmi()}>
-              Calculate EMI
-            </button>
-          </form>
+        <select
+          className="input-field"
+          value={tenureType}
+          onChange={(e) => setTenureType(e.target.value)}
+        >
+          <option value="yearly">Years</option>
+          <option value="monthly">Months</option>
+        </select>
+      </div>
+    <button className="calculate-button" onClick={calculateEMI}>Calculate</button>
+    <table className="loan-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Opening Balance</th>
+          <th>EMI</th>
+          <th>Interest</th>
+          <th>Principal</th>
+          <th>Outstanding Balance</th>
+          <th>Prepayment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {loanDetails.map((detail, index) => (
+          <tr key={index}>
+            <td>{Math.ceil(detail.year)}</td>
+            <td>{Math.ceil(detail.openingBalance)}</td>
+            <td>{Math.ceil(detail.EMI)}</td>
+            <td>{Math.ceil(detail.interest)}</td>
+            <td>{Math.ceil(detail.principal)}</td>
+            <td>{Math.ceil(detail.outstandingBalance)}</td>
+            <td>
+              <input
+              
+                className="input-field"
+               
+                onBlur={(e) => handlePrepaymentChange(e, index)}
+              />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 
-          <div className="result">
-            <h3>Loan Details</h3>
-            <p>EMI: ₹ {emi}</p>
-            <p>Total Interest: ₹ {totalInterest}</p>
-          </div>
-        </div>
-      </div>
-      <div className="emi-table-container">
-        <table className="emi-table">
-          <thead>
-            <tr>
-              <th>{tenureType === "Years" ? "Years" : "Months"}</th>
-              <th>Opening Balance</th>
-              <th>EMI</th>
-              <th>Interest</th>
-              <th>Principal</th>
-              <th>Outstanding Balance</th>
-              <th>
-                {tenureType === "Years"
-                  ? "Yearly Prepayment"
-                  : "Monthly prepayment"}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableData.map((row, index) => {
-              return (
-                <tr key={row.term}>
-                  <td>{row.term}</td>
-                  <td>{row.openingBalance}</td>
-                  <td>{row.emi}</td>
-                  <td>{row.interest}</td>
-                  <td>{row.principal}</td>
-                  <td>{row.outstandingBalance}</td>
-                  <td>
-                    {
-                      <input
-                        type="text"
-                        onBlur={(e) =>
-                          handlePrepaymentChange(index, e.target.value)
-                        }
-                      />
-                    }
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </>
   );
-};
+}
 
-export default LoanCalculator;
+export default App;
